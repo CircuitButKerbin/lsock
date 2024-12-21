@@ -1,18 +1,22 @@
 use mlua::prelude::*;
-use std::{io::{Read, Write}, net::TcpStream};
+use std::{io::{Read, Write}, net::{TcpListener, TcpStream}};
 
 struct LuaTcpStream {
     stream: TcpStream,
 }
 
+struct LuaTcpListener {
+    listener: TcpListener
+}
+
+struct LuaSockAddr {
+    addr: std::net::SocketAddr
+}
 impl LuaUserData for LuaTcpStream {
-    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
-        
-    }
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_method_mut("read", |_, this,  _:() | {
             let mut buf = Vec::new();
-            let n = this.stream.read_to_end(&mut buf).unwrap();
+            this.stream.read_to_end(&mut buf).unwrap();
             Ok(String::from_utf8(buf).unwrap())
         });
         methods.add_method_mut("write", |_, this, data: String| {
@@ -31,7 +35,32 @@ impl LuaUserData for LuaTcpStream {
     }
 }
 
-fn open_tcpstream(lua: &Lua, address: String) -> LuaResult<LuaTcpStream> {
+impl LuaUserData for LuaSockAddr {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("ip", |_, this, _: ()| {
+            Ok(this.addr.ip().to_string())
+        });
+        methods.add_method("port", |_, this, _: ()| {
+            Ok(this.addr.port())
+        });
+    }
+}
+
+impl LuaUserData for LuaTcpListener {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method_mut("accept", |_, this, _: ()| {
+            let (stream, addr) = this.listener.accept().unwrap();
+            Ok((LuaTcpStream { stream }, LuaSockAddr { addr }))
+        })
+    }
+}
+
+fn bind_tcplistener(_lua: &Lua, address:String) -> LuaResult<LuaTcpListener> {
+    let listener = TcpListener::bind(address).unwrap();
+    Ok(LuaTcpListener { listener })
+}
+
+fn open_tcpstream(_lua: &Lua, address: String) -> LuaResult<LuaTcpStream> {
     let stream = TcpStream::connect(address)?;
     Ok(LuaTcpStream { stream })
 }
@@ -41,6 +70,7 @@ fn open_tcpstream(lua: &Lua, address: String) -> LuaResult<LuaTcpStream> {
 #[mlua::lua_module]
 fn lsock(lua: &Lua) -> LuaResult<LuaTable> {
     let exports = lua.create_table()?;
-    exports.set("hi", lua.create_function(open_tcpstream)?)?;
+    exports.set("bind", lua.create_function(bind_tcplistener)?)?;
+    exports.set("open", lua.create_function(open_tcpstream)?)?;
     Ok(exports)
 }
