@@ -16,7 +16,7 @@ impl LuaUserData for LuaTcpStream {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_method_mut("read", |_, this,  _:() | {
             let mut buf = Vec::new();
-            this.stream.read_to_end(&mut buf).unwrap();
+            this.stream.read(&mut buf).unwrap();
             Ok(String::from_utf8(buf).unwrap())
         });
         methods.add_method_mut("write", |_, this, data: String| {
