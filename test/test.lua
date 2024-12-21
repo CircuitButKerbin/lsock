@@ -1,0 +1,8 @@
+local lsock = assert(package.loadlib("C:\\Users\\minec\\git\\Lsock\\target\\release\\lsock.dll", "luaopen_lsock"))()
+print(" open sock")
+local s = lsock.hi("example.com:80")
+print("connected")	
+s:write("GET / HTTP/1.0\r\n\r\n")
+response = s:read(2048)
+s:close()
+print(#response, response)
