@@ -82,12 +82,16 @@ fn jsonvalue_tolua(lua: &Lua, value: json::JsonValue) -> LuaResult<LuaValue> {
 }
 
 fn parse_json(lua: &Lua, data: String) -> LuaResult<LuaValue> {
-    Ok(jsonvalue_tolua(lua,json::parse(&data).unwrap()).unwrap())
+    let j = json::parse(&data);
+    match j {
+        Ok(v) => jsonvalue_tolua(lua, v),
+        Err(e) => Err(LuaError::external(e)),
+    }
 }
 
 
 fn bind_tcplistener(_lua: &Lua, address:String) -> LuaResult<LuaTcpListener> {
-    let listener = TcpListener::bind(address).unwrap();
+    let listener = TcpListener::bind(address)?;
     Ok(LuaTcpListener { listener })
 }
 

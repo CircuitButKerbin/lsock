@@ -10,4 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 json = "0.12.4"
-mlua = {version="0.10.2", features=["lua54", "module"]}
+mlua = {version="0.10.2", features=["lua54", "module", "async"]}
